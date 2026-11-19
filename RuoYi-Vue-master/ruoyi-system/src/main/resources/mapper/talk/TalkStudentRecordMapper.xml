@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.talk.mapper.TalkStudentRecordMapper">
+    
+    <resultMap type="TalkStudentRecord" id="TalkStudentRecordResult">
+        <result property="recordId"    column="record_id"    />
+        <result property="sessionId"    column="session_id"    />
+        <result property="studentId"    column="student_id"    />
+        <result property="studentName"    column="student_name"    />
+        <result property="studentCode"    column="student_code"    />
+        <result property="studentFeedback"    column="student_feedback"    />
+        <result property="originalStudentFeedback" column="original_student_feedback" />
+        <result property="followupPlan"    column="followup_plan"    />
+        <result property="followupStatus"    column="followup_status"    />
+        <result property="notified"         column="notified"          />
+        <result property="teacherNotified"  column="teacher_notified"  />
+        <result property="talkType"    column="talk_type"    />
+        <result property="talkTime"    column="talk_time"    />
+        <result property="talkLocation"    column="talk_location"    />
+        <result property="talkContent"    column="talk_content"    />
+        <result property="talkPerson"    column="talk_person"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectTalkStudentRecordVo">
+        select tsr.record_id, tsr.session_id, tsr.student_id, st.student_name, st.student_code,
+               tsr.student_feedback, tsr.original_student_feedback, tsr.followup_plan, tsr.followup_status,
+               tsr.notified, tsr.teacher_notified,
+               ts.talk_time, ts.talk_type, ts.talk_location, ts.talk_content, ts.talk_person,
+               tsr.create_time, tsr.update_time
+        from talk_student_record tsr
+        left join talk_student st on tsr.student_id = st.student_id
+        left join talk_session ts on tsr.session_id = ts.session_id
+    </sql>
+
+    <select id="selectTalkStudentRecordList" parameterType="TalkStudentRecord" resultMap="TalkStudentRecordResult">
+        <include refid="selectTalkStudentRecordVo"/>
+        <where>  
+            <if test="sessionIds != null and sessionIds != ''">
+                and tsr.session_id in
+                <foreach item="id" collection="sessionIds.split(',')" open="(" separator="," close=")">#{id}</foreach>
+            </if>
+            <if test="sessionId != null "> and tsr.session_id = #{sessionId}</if>
+            <if test="studentId != null "> and tsr.student_id = #{studentId}</if>
+            <if test="deptId != null"> and (st.dept_id = #{deptId} or st.dept_id in
+                (select dept_id from sys_dept where find_in_set(#{deptId}, ancestors)))</if>
+            <if test="studentCode != null and studentCode != ''"> and st.student_code = #{studentCode}</if>
+            <if test="studentName != null and studentName != ''"> and st.student_name like concat('%', #{studentName}, '%')</if>
+            <if test="keyword != null and keyword != ''">
+                and (st.student_code like concat('%', #{keyword}, '%')
+                    or st.student_name like concat('%', #{keyword}, '%'))
+            </if>
+            <if test="talkType != null and talkType != ''"> and ts.talk_type = #{talkType}</if>
+            <if test="talkPerson != null and talkPerson != ''"> and ts.talk_person like concat('%', #{talkPerson}, '%')</if>
+            <if test="beginTalkTime != null and beginTalkTime != ''"> and ts.talk_time &gt;= #{beginTalkTime}</if>
+            <if test="endTalkTime != null and endTalkTime != ''"> and ts.talk_time &lt; date_add(#{endTalkTime}, interval 1 day)</if>
+            <if test="tagValues != null and tagValues != ''">
+                and exists (
+                    select 1 from talk_session_tag tst
+                    where tst.session_id = tsr.session_id
+                      and (
+                        <foreach item="tagValue" collection="tagValues.split(',')" separator=" or ">
+                            (tst.tag_value = #{tagValue}
+                             or (json_valid(tst.tag_value) and json_contains(tst.tag_value, json_quote(#{tagValue}))))
+                        </foreach>
+                      )
+                )
+            </if>
+            <if test="studentFeedback != null and studentFeedback != ''"> and tsr.student_feedback = #{studentFeedback}</if>
+            <if test="hasNoFeedback != null"> and (tsr.student_feedback is null or tsr.student_feedback = '' or tsr.student_feedback = '无')</if>
+            <if test="followupPlan != null  and followupPlan != ''"> and tsr.followup_plan = #{followupPlan}</if>
+            <if test="followupStatus != null  and followupStatus != ''"> and tsr.followup_status = #{followupStatus}</if>
+            <if test="notified != null"> and tsr.notified = #{notified}</if>
+            <if test="teacherNotified != null"> and tsr.teacher_notified = #{teacherNotified}</if>
+            <if test="params.collegeDeptId != null"> and ts.college_dept_id = #{params.collegeDeptId}</if>
+        </where>
+        order by ts.talk_time desc, tsr.record_id desc
+    </select>
+    
+    <select id="selectTalkStudentRecordByRecordId" parameterType="Long" resultMap="TalkStudentRecordResult">
+        <include refid="selectTalkStudentRecordVo"/>
+        where tsr.record_id = #{recordId}
+    </select>
+
+    <select id="selectTalkStudentRecordBySessionId" parameterType="Long" resultMap="TalkStudentRecordResult">
+        <include refid="selectTalkStudentRecordVo"/>
+        where tsr.session_id = #{sessionId}
+    </select>
+
+    <select id="selectTalkStudentRecordByStudentId" parameterType="Long" resultMap="TalkStudentRecordResult">
+        <include refid="selectTalkStudentRecordVo"/>
+        where tsr.student_id = #{studentId}
+    </select>
+
+    <insert id="insertTalkStudentRecord" parameterType="TalkStudentRecord" useGeneratedKeys="true" keyProperty="recordId">
+        insert into talk_student_record
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="sessionId != null">session_id,</if>
+            <if test="studentId != null">student_id,</if>
+            <if test="studentFeedback != null">student_feedback,</if>
+            <if test="originalStudentFeedback != null">original_student_feedback,</if>
+            <if test="followupPlan != null and followupPlan != ''">followup_plan,</if>
+            <if test="followupStatus != null">followup_status,</if>
+            <if test="notified != null">notified,</if>
+            <if test="teacherNotified != null">teacher_notified,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="sessionId != null">#{sessionId},</if>
+            <if test="studentId != null">#{studentId},</if>
+            <if test="studentFeedback != null">#{studentFeedback},</if>
+            <if test="originalStudentFeedback != null">#{originalStudentFeedback},</if>
+            <if test="followupPlan != null and followupPlan != ''">#{followupPlan},</if>
+            <if test="followupStatus != null">#{followupStatus},</if>
+            <if test="notified != null">#{notified},</if>
+            <if test="teacherNotified != null">#{teacherNotified},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateTalkStudentRecord" parameterType="TalkStudentRecord">
+        update talk_student_record
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="sessionId != null">session_id = #{sessionId},</if>
+            <if test="studentId != null">student_id = #{studentId},</if>
+            <if test="studentFeedback != null">student_feedback = #{studentFeedback},</if>
+            <if test="originalStudentFeedback != null">original_student_feedback = #{originalStudentFeedback},</if>
+            <if test="followupPlan != null and followupPlan != ''">followup_plan = #{followupPlan},</if>
+            <if test="followupStatus != null">followup_status = #{followupStatus},</if>
+            <if test="notified != null">notified = #{notified},</if>
+            <if test="teacherNotified != null">teacher_notified = #{teacherNotified},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where record_id = #{recordId}
+    </update>
+
+    <delete id="deleteTalkStudentRecordByRecordId" parameterType="Long">
+        delete from talk_student_record where record_id = #{recordId}
+    </delete>
+
+    <delete id="deleteTalkStudentRecordByRecordIds" parameterType="String">
+        delete from talk_student_record where record_id in 
+        <foreach item="recordId" collection="array" open="(" separator="," close=")">
+            #{recordId}
+        </foreach>
+    </delete>
+
+    <delete id="deleteTalkStudentRecordBySessionId" parameterType="Long">
+        delete from talk_student_record where session_id = #{sessionId}
+    </delete>
+
+    <delete id="deleteTalkStudentRecordByStudentId" parameterType="Long">
+        delete from talk_student_record where student_id = #{studentId}
+    </delete>
+
+    <select id="countRecords" resultType="int">
+        select count(*) from talk_student_record
+    </select>
+
+    <select id="countRecordsByFollowupStatus" resultType="java.util.HashMap">
+        select followup_status as status, count(*) as cnt
+        from talk_student_record group by followup_status
+    </select>
+
+    <select id="countRecordsBySessionId" parameterType="Long" resultType="int">
+        select count(*) from talk_student_record where session_id = #{sessionId}
+    </select>
+
+    <select id="countRecordsFiltered" parameterType="map" resultType="int">
+        select count(*) from talk_student_record tsr
+        <where>
+            <if test="collegeDeptId != null"> and tsr.session_id in (select ts.session_id from talk_session ts where ts.college_dept_id = #{collegeDeptId})</if>
+        </where>
+    </select>
+
+    <select id="countCoveredStudentsFiltered" parameterType="map" resultType="int">
+        select count(distinct tsr.student_id)
+        from talk_student_record tsr
+        join talk_session ts on ts.session_id = tsr.session_id
+        <where>
+            <if test="collegeDeptId != null"> and ts.college_dept_id = #{collegeDeptId}</if>
+        </where>
+    </select>
+
+    <select id="countRecordsByFollowupStatusFiltered" parameterType="map" resultType="java.util.HashMap">
+        select tsr.followup_status as status, count(*) as cnt
+        from talk_student_record tsr
+        <where>
+            <if test="collegeDeptId != null"> and tsr.session_id in (select ts.session_id from talk_session ts where ts.college_dept_id = #{collegeDeptId})</if>
+        </where>
+        group by tsr.followup_status
+    </select>
+
+    <select id="countPendingFeedback" parameterType="map" resultType="int">
+        select count(*) from talk_student_record tsr
+        <where>
+            tsr.student_feedback is not null and tsr.student_feedback != '' and tsr.student_feedback != '无'
+            and tsr.teacher_notified = 0
+            <if test="collegeDeptId != null"> and tsr.session_id in (select ts.session_id from talk_session ts where ts.college_dept_id = #{collegeDeptId})</if>
+        </where>
+    </select>
+
+    <select id="selectRecentRecordsFiltered" parameterType="map" resultMap="TalkStudentRecordResult">
+        <include refid="selectTalkStudentRecordVo"/>
+        <where>
+            <if test="collegeDeptId != null"> and ts.college_dept_id = #{collegeDeptId}</if>
+        </where>
+        order by tsr.create_time desc
+        limit 8
+    </select>
+    <select id="selectRecordsForUpdate" parameterType="Long" resultMap="TalkStudentRecordResult">
+        select record_id, session_id, student_id from talk_student_record where session_id = #{sessionId} for update
+    </select>
+</mapper>

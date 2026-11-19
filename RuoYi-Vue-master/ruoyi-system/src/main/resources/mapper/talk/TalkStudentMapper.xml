@@ -1,0 +1,405 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.talk.mapper.TalkStudentMapper">
+    <select id="selectNations" resultType="string">
+        select distinct s.nation from talk_student s
+        where s.nation is not null and trim(s.nation) != ''
+        <if test="collegeDeptId != null">
+            and (s.dept_id = #{collegeDeptId} or s.dept_id in
+                (select dept_id from sys_dept where find_in_set(#{collegeDeptId}, ancestors)))
+        </if>
+        order by s.nation
+    </select>
+    
+    <resultMap type="TalkStudent" id="TalkStudentResult">
+        <result property="studentId"    column="student_id"    />
+        <result property="studentCode"    column="student_code"    />
+        <result property="studentName"    column="student_name"    />
+        <result property="deptId"    column="dept_id"    />
+        <result property="gender"    column="gender"    />
+        <result property="politicalStatus"    column="political_status"    />
+        <result property="nation"    column="nation"    />
+        <result property="phone"    column="phone"    />
+        <result property="idCard"    column="id_card"    />
+        <result property="address"    column="address"    />
+        <result property="fatherName"    column="father_name"    />
+        <result property="fatherPhone"    column="father_phone"    />
+        <result property="motherName"    column="mother_name"    />
+        <result property="motherPhone"    column="mother_phone"    />
+        <result property="classMonitor"    column="class_monitor"    />
+        <result property="dormLeader"    column="dorm_leader"    />
+        <result property="dormBuilding"    column="dorm_building"    />
+        <result property="dormRoom"    column="dorm_room"    />
+        <result property="enrollmentStatus"    column="enrollment_status"    />
+        <result property="mentalHealthStatus"    column="mental_health_status"    />
+        <result property="povertyLevel"    column="poverty_level"    />
+        <result property="deptName"    column="dept_name"    />
+        <result property="lastTalkTime"    column="last_talk_time"    />
+        <result property="remark"    column="remark"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+    </resultMap>
+
+    <sql id="selectTalkStudentVo">
+        select s.student_id, s.student_code, s.student_name, s.dept_id, s.gender, 
+               s.political_status, s.nation, s.phone, s.id_card, s.address, s.father_name, 
+               s.father_phone, s.mother_name, s.mother_phone, s.class_monitor, s.dorm_leader, 
+               s.dorm_building, s.dorm_room, s.enrollment_status, s.mental_health_status, 
+               s.poverty_level, s.remark, s.create_by, s.create_time, s.update_by, s.update_time,
+               d.dept_name
+        from talk_student s
+        left join sys_dept d on s.dept_id = d.dept_id
+    </sql>
+
+    <!-- 选择日期时仅列出该期间未谈的学生；结束日期包含全天。 -->
+    <sql id="studentUntalkedPeriodFilter">
+        <if test="params.beginTime != null and params.beginTime != '' and params.endTime != null and params.endTime != ''">
+            and not exists (
+                select 1 from talk_student_record period_record
+                join talk_session period_session on period_record.session_id = period_session.session_id
+                where period_record.student_id = s.student_id
+                  and period_session.talk_time &gt;= #{params.beginTime}
+                  and period_session.talk_time &lt; date_add(#{params.endTime}, interval 1 day)
+            )
+        </if>
+    </sql>
+
+    <select id="selectTalkStudentList" parameterType="TalkStudent" resultMap="TalkStudentResult">
+        <include refid="selectTalkStudentVo"/>
+        <where>  
+            <if test="studentCode != null  and studentCode != ''"> and s.student_code = #{studentCode}</if>
+            <if test="studentName != null  and studentName != ''"> and s.student_name like concat('%', #{studentName}, '%')</if>
+            <if test="deptId != null "> and (s.dept_id = #{deptId} or s.dept_id in (select dept_id from sys_dept where find_in_set(#{deptId}, ancestors)))</if>
+            <if test="gender != null  and gender != ''"> and (s.gender = #{gender}<if test="params.genderLabel != null"> or s.gender = #{params.genderLabel}</if>)</if>
+            <if test="politicalStatus != null  and politicalStatus != ''"> and (s.political_status = #{politicalStatus}<if test="params.politicalStatusLabel != null"> or s.political_status = #{params.politicalStatusLabel}</if>)</if>
+            <if test="nation != null  and nation != ''"> and s.nation = #{nation}</if>
+            <if test="phone != null  and phone != ''"> and s.phone = #{phone}</if>
+            <if test="idCard != null  and idCard != ''"> and s.id_card = #{idCard}</if>
+            <if test="address != null  and address != ''"> and s.address = #{address}</if>
+            <if test="fatherName != null  and fatherName != ''"> and s.father_name like concat('%', #{fatherName}, '%')</if>
+            <if test="fatherPhone != null  and fatherPhone != ''"> and s.father_phone = #{fatherPhone}</if>
+            <if test="motherName != null  and motherName != ''"> and s.mother_name like concat('%', #{motherName}, '%')</if>
+            <if test="motherPhone != null  and motherPhone != ''"> and s.mother_phone = #{motherPhone}</if>
+            <if test="classMonitor != null  and classMonitor != ''"> and s.class_monitor = #{classMonitor}</if>
+            <if test="dormLeader != null  and dormLeader != ''"> and s.dorm_leader = #{dormLeader}</if>
+            <if test="dormBuilding != null  and dormBuilding != ''"> and s.dorm_building = #{dormBuilding}</if>
+            <if test="dormRoom != null  and dormRoom != ''"> and s.dorm_room = #{dormRoom}</if>
+            <if test="enrollmentStatus != null  and enrollmentStatus != ''"> and (s.enrollment_status = #{enrollmentStatus}<if test="params.enrollmentStatusLabel != null"> or s.enrollment_status = #{params.enrollmentStatusLabel}</if>)</if>
+            <if test="mentalHealthStatus != null  and mentalHealthStatus != ''"> and (s.mental_health_status = #{mentalHealthStatus}<if test="params.mentalHealthStatusLabel != null"> or s.mental_health_status = #{params.mentalHealthStatusLabel}</if>)</if>
+            <if test="povertyLevel != null  and povertyLevel != ''"> and (s.poverty_level = #{povertyLevel}<if test="params.povertyLevelLabel != null"> or s.poverty_level = #{params.povertyLevelLabel}</if>)</if>
+            <include refid="studentUntalkedPeriodFilter"/>
+            <if test="params.collegeDeptId != null"> and (s.dept_id = #{params.collegeDeptId} or s.dept_id in (select dept_id from sys_dept where find_in_set(#{params.collegeDeptId}, ancestors)))</if>
+        </where>
+    </select>
+    
+    <select id="selectTalkStudentByStudentId" parameterType="Long" resultMap="TalkStudentResult">
+        <include refid="selectTalkStudentVo"/>
+        where s.student_id = #{studentId}
+    </select>
+
+    <select id="selectTalkStudentByCode" parameterType="String" resultMap="TalkStudentResult">
+        <include refid="selectTalkStudentVo"/>
+        where s.student_code = #{studentCode}
+    </select>
+
+    <insert id="insertTalkStudent" parameterType="TalkStudent" useGeneratedKeys="true" keyProperty="studentId">
+        insert into talk_student
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="studentCode != null and studentCode != ''">student_code,</if>
+            <if test="studentName != null and studentName != ''">student_name,</if>
+            <if test="deptId != null">dept_id,</if>
+            <if test="gender != null">gender,</if>
+            <if test="politicalStatus != null">political_status,</if>
+            <if test="nation != null">nation,</if>
+            <if test="phone != null">phone,</if>
+            <if test="idCard != null">id_card,</if>
+            <if test="address != null">address,</if>
+            <if test="fatherName != null">father_name,</if>
+            <if test="fatherPhone != null">father_phone,</if>
+            <if test="motherName != null">mother_name,</if>
+            <if test="motherPhone != null">mother_phone,</if>
+            <if test="classMonitor != null">class_monitor,</if>
+            <if test="dormLeader != null">dorm_leader,</if>
+            <if test="dormBuilding != null">dorm_building,</if>
+            <if test="dormRoom != null">dorm_room,</if>
+            <if test="enrollmentStatus != null">enrollment_status,</if>
+            <if test="mentalHealthStatus != null">mental_health_status,</if>
+            <if test="povertyLevel != null">poverty_level,</if>
+            <if test="remark != null">remark,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="studentCode != null and studentCode != ''">#{studentCode},</if>
+            <if test="studentName != null and studentName != ''">#{studentName},</if>
+            <if test="deptId != null">#{deptId},</if>
+            <if test="gender != null">#{gender},</if>
+            <if test="politicalStatus != null">#{politicalStatus},</if>
+            <if test="nation != null">#{nation},</if>
+            <if test="phone != null">#{phone},</if>
+            <if test="idCard != null">#{idCard},</if>
+            <if test="address != null">#{address},</if>
+            <if test="fatherName != null">#{fatherName},</if>
+            <if test="fatherPhone != null">#{fatherPhone},</if>
+            <if test="motherName != null">#{motherName},</if>
+            <if test="motherPhone != null">#{motherPhone},</if>
+            <if test="classMonitor != null">#{classMonitor},</if>
+            <if test="dormLeader != null">#{dormLeader},</if>
+            <if test="dormBuilding != null">#{dormBuilding},</if>
+            <if test="dormRoom != null">#{dormRoom},</if>
+            <if test="enrollmentStatus != null">#{enrollmentStatus},</if>
+            <if test="mentalHealthStatus != null">#{mentalHealthStatus},</if>
+            <if test="povertyLevel != null">#{povertyLevel},</if>
+            <if test="remark != null">#{remark},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+         </trim>
+    </insert>
+
+    <update id="updateTalkStudent" parameterType="TalkStudent">
+        update talk_student
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="studentCode != null and studentCode != ''">student_code = #{studentCode},</if>
+            <if test="studentName != null and studentName != ''">student_name = #{studentName},</if>
+            <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="politicalStatus != null">political_status = #{politicalStatus},</if>
+            <if test="nation != null">nation = #{nation},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="idCard != null">id_card = #{idCard},</if>
+            <if test="address != null">address = #{address},</if>
+            <if test="fatherName != null">father_name = #{fatherName},</if>
+            <if test="fatherPhone != null">father_phone = #{fatherPhone},</if>
+            <if test="motherName != null">mother_name = #{motherName},</if>
+            <if test="motherPhone != null">mother_phone = #{motherPhone},</if>
+            <if test="classMonitor != null">class_monitor = #{classMonitor},</if>
+            <if test="dormLeader != null">dorm_leader = #{dormLeader},</if>
+            <if test="dormBuilding != null">dorm_building = #{dormBuilding},</if>
+            <if test="dormRoom != null">dorm_room = #{dormRoom},</if>
+            <if test="enrollmentStatus != null">enrollment_status = #{enrollmentStatus},</if>
+            <if test="mentalHealthStatus != null">mental_health_status = #{mentalHealthStatus},</if>
+            <if test="povertyLevel != null">poverty_level = #{povertyLevel},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </trim>
+        where student_id = #{studentId}
+    </update>
+
+    <delete id="deleteTalkStudentByStudentId" parameterType="Long">
+        delete from talk_student where student_id = #{studentId}
+    </delete>
+
+    <delete id="deleteTalkStudentByStudentIds" parameterType="String">
+        delete from talk_student where student_id in 
+        <foreach item="studentId" collection="array" open="(" separator="," close=")">
+            #{studentId}
+        </foreach>
+    </delete>
+
+    <select id="countTalkStudents" resultType="int">
+        select count(*) from talk_student
+    </select>
+
+    <select id="countStudentsByDeptId" parameterType="Long" resultType="int">
+        select count(*) from talk_student
+        where dept_id = #{deptId}
+           or dept_id in (select dept_id from sys_dept where find_in_set(#{deptId}, ancestors))
+    </select>
+
+    <select id="countTalkStudentsFiltered" parameterType="map" resultType="int">
+        select count(*) from talk_student s
+        <where>
+            <if test="collegeDeptId != null"> and s.dept_id in (select dept_id from sys_dept d where (d.dept_id = #{collegeDeptId} or find_in_set(#{collegeDeptId}, d.ancestors)))</if>
+        </where>
+    </select>
+
+    <select id="selectUntalkedStudents" parameterType="map" resultMap="TalkStudentResult">
+        select s.*, d.dept_name,
+               (select max(ts.talk_time) 
+                from talk_student_record tsr 
+                join talk_session ts on tsr.session_id = ts.session_id 
+                where tsr.student_id = s.student_id) as last_talk_time
+        from talk_student s
+        left join sys_dept d on s.dept_id = d.dept_id
+        <where>
+            <if test="deptId != null">
+                and s.dept_id in (select d2.dept_id from sys_dept d2 where d2.dept_id = #{deptId}
+                    or find_in_set(#{deptId}, d2.ancestors))
+            </if>
+            <choose>
+                <when test="beginDate != null and endDate != null">
+                    and not exists (
+                        select 1 from talk_student_record tsr
+                        join talk_session ts on tsr.session_id = ts.session_id
+                        where tsr.student_id = s.student_id
+                          and ts.talk_time &gt;= #{beginDate}
+                          and ts.talk_time &lt; date_add(#{endDate}, interval 1 day)
+                    )
+                </when>
+                <otherwise>
+                    and not exists (
+                        select 1 from talk_student_record tsr
+                        where tsr.student_id = s.student_id
+                    )
+                </otherwise>
+            </choose>
+            <if test="keyword != null and keyword != ''">
+                and (s.student_code like concat('%', #{keyword}, '%')
+                    or s.student_name like concat('%', #{keyword}, '%'))
+            </if>
+            <if test="collegeDeptId != null"> and s.dept_id in (select dept_id from sys_dept d where (d.dept_id = #{collegeDeptId} or find_in_set(#{collegeDeptId}, d.ancestors)))</if>
+        </where>
+        order by s.student_code asc
+    </select>
+
+    <select id="selectMinAvailableStudentId" resultType="Long">
+        SELECT IFNULL(MIN(t1.student_id + 1), 1) AS next_id
+        FROM talk_student t1
+        LEFT JOIN talk_student t2 ON t1.student_id + 1 = t2.student_id
+        WHERE t2.student_id IS NULL
+    </select>
+
+    <select id="countRecordsByStudentId" parameterType="Long" resultType="int">
+        select count(*) from talk_student_record where student_id = #{studentId}
+    </select>
+
+    <select id="selectTalkStudentListWithLastTalk" parameterType="TalkStudent" resultMap="TalkStudentResult">
+        select s.student_id, s.student_code, s.student_name, s.dept_id, s.gender, 
+               s.political_status, s.nation, s.phone, s.id_card, s.address, s.father_name, 
+               s.father_phone, s.mother_name, s.mother_phone, s.class_monitor, s.dorm_leader, 
+               s.dorm_building, s.dorm_room, s.enrollment_status, s.mental_health_status, 
+               s.poverty_level, s.remark, s.create_by, s.create_time, s.update_by, s.update_time,
+               d.dept_name,
+               (select max(ts.talk_time) 
+                from talk_student_record tsr 
+                join talk_session ts on tsr.session_id = ts.session_id 
+                where tsr.student_id = s.student_id) as last_talk_time
+        from talk_student s
+        left join sys_dept d on s.dept_id = d.dept_id
+        <where>
+            <if test="studentCode != null  and studentCode != ''"> and s.student_code = #{studentCode}</if>
+            <if test="studentName != null  and studentName != ''"> and s.student_name like concat('%', #{studentName}, '%')</if>
+            <if test="deptId != null "> and (s.dept_id = #{deptId} or s.dept_id in (select dept_id from sys_dept where find_in_set(#{deptId}, ancestors)))</if>
+            <if test="gender != null  and gender != ''"> and (s.gender = #{gender}<if test="params.genderLabel != null"> or s.gender = #{params.genderLabel}</if>)</if>
+            <if test="politicalStatus != null  and politicalStatus != ''"> and (s.political_status = #{politicalStatus}<if test="params.politicalStatusLabel != null"> or s.political_status = #{params.politicalStatusLabel}</if>)</if>
+            <if test="nation != null  and nation != ''"> and s.nation = #{nation}</if>
+            <if test="phone != null  and phone != ''"> and s.phone = #{phone}</if>
+            <if test="idCard != null  and idCard != ''"> and s.id_card = #{idCard}</if>
+            <if test="address != null  and address != ''"> and s.address = #{address}</if>
+            <if test="fatherName != null  and fatherName != ''"> and s.father_name like concat('%', #{fatherName}, '%')</if>
+            <if test="fatherPhone != null  and fatherPhone != ''"> and s.father_phone = #{fatherPhone}</if>
+            <if test="motherName != null  and motherName != ''"> and s.mother_name like concat('%', #{motherName}, '%')</if>
+            <if test="motherPhone != null  and motherPhone != ''"> and s.mother_phone = #{motherPhone}</if>
+            <if test="classMonitor != null  and classMonitor != ''"> and s.class_monitor = #{classMonitor}</if>
+            <if test="dormLeader != null  and dormLeader != ''"> and s.dorm_leader = #{dormLeader}</if>
+            <if test="dormBuilding != null  and dormBuilding != ''"> and s.dorm_building = #{dormBuilding}</if>
+            <if test="dormRoom != null  and dormRoom != ''"> and s.dorm_room = #{dormRoom}</if>
+            <if test="enrollmentStatus != null  and enrollmentStatus != ''"> and (s.enrollment_status = #{enrollmentStatus}<if test="params.enrollmentStatusLabel != null"> or s.enrollment_status = #{params.enrollmentStatusLabel}</if>)</if>
+            <if test="mentalHealthStatus != null  and mentalHealthStatus != ''"> and (s.mental_health_status = #{mentalHealthStatus}<if test="params.mentalHealthStatusLabel != null"> or s.mental_health_status = #{params.mentalHealthStatusLabel}</if>)</if>
+            <if test="povertyLevel != null  and povertyLevel != ''"> and (s.poverty_level = #{povertyLevel}<if test="params.povertyLevelLabel != null"> or s.poverty_level = #{params.povertyLevelLabel}</if>)</if>
+            <include refid="studentUntalkedPeriodFilter"/>
+            <if test="params.collegeDeptId != null"> and (s.dept_id = #{params.collegeDeptId} or s.dept_id in (select dept_id from sys_dept where find_in_set(#{params.collegeDeptId}, ancestors)))</if>
+        </where>
+    </select>
+
+    <select id="selectUntalkedStudentsInPeriod" resultMap="TalkStudentResult">
+        select s.student_id, s.student_code, s.student_name, s.dept_id, s.gender,
+               s.political_status, s.nation, s.phone, s.id_card, s.address, s.father_name,
+               s.father_phone, s.mother_name, s.mother_phone, s.class_monitor, s.dorm_leader,
+               s.dorm_building, s.dorm_room, s.enrollment_status, s.mental_health_status,
+               s.poverty_level, s.remark, s.create_by, s.create_time, s.update_by, s.update_time,
+               d.dept_name,
+               (select max(ts.talk_time)
+                from talk_student_record tsr
+                join talk_session ts on tsr.session_id = ts.session_id
+                where tsr.student_id = s.student_id) as last_talk_time
+        from talk_student s
+        left join sys_dept d on s.dept_id = d.dept_id
+        <where>
+            not exists (
+                select 1 from talk_student_record tsr
+                join talk_session ts on tsr.session_id = ts.session_id
+                where tsr.student_id = s.student_id
+                and ts.talk_time between #{startTime} and #{endTime}
+            )
+            <if test="deptId != null">
+                and s.dept_id in (select d2.dept_id from sys_dept d2 where d2.dept_id = #{deptId}
+                    or find_in_set(#{deptId}, d2.ancestors))
+            </if>
+            <if test="params != null and params.collegeDeptId != null"> and s.dept_id in (select dept_id from sys_dept d where (d.dept_id = #{params.collegeDeptId} or find_in_set(#{params.collegeDeptId}, d.ancestors)))</if>
+        </where>
+        order by s.student_code asc
+    </select>
+
+    <select id="selectByCollegeDeptId" parameterType="Long" resultMap="TalkStudentResult">
+        <include refid="selectTalkStudentVo"/>
+        where (s.dept_id = #{deptId}
+            or s.dept_id in (select dept_id from sys_dept where find_in_set(#{deptId}, ancestors)))
+        order by s.student_code
+    </select>
+
+    <select id="selectByTeacherCode" parameterType="String" resultMap="TalkStudentResult">
+        <include refid="selectTalkStudentVo"/>
+        where exists (
+            select 1 from talk_teacher t
+            where t.teacher_code = #{teacherCode}
+              and (t.dept_id = d.dept_id or find_in_set(t.dept_id, d.ancestors))
+              and (exists (select 1 from talk_class_manager cm where cm.class_dept_id = s.dept_id and cm.teacher_id = t.teacher_id)
+                   or (exists (select 1 from talk_teacher_class tc where tc.teacher_code = t.teacher_code and tc.class_name = d.dept_name)
+                       and (select count(*) from sys_dept named_class where named_class.dept_name = d.dept_name
+                            and named_class.dept_type = 'class' and named_class.del_flag = '0'
+                            and (named_class.dept_id = t.dept_id or find_in_set(t.dept_id, named_class.ancestors))) = 1
+                       and not exists (select 1 from talk_class_manager precise join sys_dept bound_class on bound_class.dept_id = precise.class_dept_id
+                                       where precise.teacher_id = t.teacher_id and bound_class.dept_name = d.dept_name)))
+        )
+        order by s.student_code
+    </select>
+
+    <select id="countByMentalHealthFiltered" parameterType="map" resultType="java.util.HashMap">
+        select s.mental_health_status as status, count(*) as cnt
+        from talk_student s
+        <where>
+            s.mental_health_status is not null and s.mental_health_status != '' and s.mental_health_status != 'normal' and s.mental_health_status != '正常' and s.mental_health_status != '健康'
+            <if test="collegeDeptId != null"> and s.dept_id in (select dept_id from sys_dept d where (d.dept_id = #{collegeDeptId} or find_in_set(#{collegeDeptId}, d.ancestors)))</if>
+        </where>
+        group by s.mental_health_status
+    </select>
+
+    <select id="countByPovertyLevelFiltered" parameterType="map" resultType="java.util.HashMap">
+        select s.poverty_level as level, count(*) as cnt
+        from talk_student s
+        <where>
+            s.poverty_level is not null and s.poverty_level != '' and s.poverty_level != 'none' and s.poverty_level != '无贫困' and s.poverty_level != '无'
+            <if test="collegeDeptId != null"> and s.dept_id in (select dept_id from sys_dept d where (d.dept_id = #{collegeDeptId} or find_in_set(#{collegeDeptId}, d.ancestors)))</if>
+        </where>
+        group by s.poverty_level
+    </select>
+
+    <select id="countByEnrollmentStatusFiltered" parameterType="map" resultType="java.util.HashMap">
+        select s.enrollment_status as status, count(*) as cnt
+        from talk_student s
+        <where>
+            s.enrollment_status is not null and s.enrollment_status != '' and s.enrollment_status != 'active' and s.enrollment_status != '在读' and s.enrollment_status != '在校' and s.enrollment_status != '毕业'
+            <if test="collegeDeptId != null"> and s.dept_id in (select dept_id from sys_dept d where (d.dept_id = #{collegeDeptId} or find_in_set(#{collegeDeptId}, d.ancestors)))</if>
+        </where>
+        group by s.enrollment_status
+    </select>
+
+    <select id="countUntalkedStudentsFiltered" parameterType="map" resultType="int">
+        select count(*) from talk_student s
+        <where>
+            not exists (select 1 from talk_student_record tsr where tsr.student_id = s.student_id)
+            <if test="collegeDeptId != null"> and s.dept_id in (select dept_id from sys_dept d where (d.dept_id = #{collegeDeptId} or find_in_set(#{collegeDeptId}, d.ancestors)))</if>
+        </where>
+    </select>
+
+</mapper>

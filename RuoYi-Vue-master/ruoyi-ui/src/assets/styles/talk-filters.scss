@@ -1,0 +1,21 @@
+.talk-filter-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  padding: 20px 24px;
+  margin-bottom: 18px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(38, 75, 90, .06);
+}
+.talk-filter-form .el-form-item { min-width: 0; margin: 0; }
+.talk-filter-form .el-form-item__label { float: none; display: block; width: auto !important; padding: 0 0 7px; color: #536b7c; line-height: 20px; font-weight: 500; }
+.talk-filter-form .el-form-item__content { margin-left: 0 !important; line-height: 40px; }
+.talk-filter-form .el-select, .talk-filter-form .el-date-editor, .talk-filter-form .el-cascader, .talk-filter-form .vue-treeselect { width: 100% !important; }
+.talk-filter-form .el-form-item__content > .el-input { width: 100% !important; }
+.talk-filter-form .el-input__inner, .talk-filter-form .vue-treeselect__control { height: 40px; border-color: #dce6eb; border-radius: 8px; }
+.talk-filter-form .el-input__inner:focus { border-color: #168294; }
+.talk-filter-form .el-form-item:not(:has(.el-form-item__label)) { align-self: end; }
+.talk-filter-form .el-button { min-height: 40px; }
+@media (max-width: 1199px) { .talk-filter-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .talk-filter-form { grid-template-columns: minmax(0, 1fr); padding: 16px; } }
