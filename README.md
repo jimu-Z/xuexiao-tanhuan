@@ -16,9 +16,11 @@
 | `RuoYi-Vue-master/ruoyi-ui/` | Vue 2 管理端 |
 | `Student-UI/` | 保留的学生端源码。当前管理端的标准部署无需启动学生端 |
 | `database/` | 空库结构、基础种子数据和管理员初始化脚本 |
-| `docs/` | 安装部署和使用说明 |
+| `docs/` | 系统介绍、安装部署和使用说明 |
 
 ## 开始使用
+
+功能、角色权限和业务流程见[详细系统介绍](docs/SYSTEM-OVERVIEW.md)。
 
 1. 按[数据库说明](database/README.md)初始化空库并创建管理员。
 2. 按[安装部署说明](docs/DEPLOYMENT.md)启动后端、构建管理端并配置反向代理。
